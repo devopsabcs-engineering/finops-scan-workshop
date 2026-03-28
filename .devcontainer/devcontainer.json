@@ -1,0 +1,22 @@
+{
+  "name": "FinOps Workshop",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/powershell:1": {},
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "postCreateCommand": "pwsh -NoProfile -Command 'Install-Module -Name PSRule.Rules.Azure -Scope CurrentUser -Force' && pip install checkov c7n c7n-azure && curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-bicep",
+        "ms-vscode.powershell",
+        "ms-python.python",
+        "MS-SarifVSCode.sarif-viewer"
+      ]
+    }
+  }
+}
