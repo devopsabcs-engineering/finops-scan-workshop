@@ -1,0 +1,17 @@
+title: "FinOps Cost Governance Workshop"
+description: "Learn to scan Azure resources for cost governance violations using PSRule, Checkov, Cloud Custodian, and Infracost."
+theme: jekyll-theme-minimal
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: true
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - scripts/
+  - src/
+  - .copilot-tracking/
+  - .github/agents/
+  - .github/prompts/
+  - .github/skills/

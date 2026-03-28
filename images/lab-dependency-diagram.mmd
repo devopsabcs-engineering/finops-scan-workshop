@@ -1,0 +1,19 @@
+graph LR
+    L00[Lab 00: Setup] --> L01[Lab 01: Demo Apps]
+    L01 --> L02[Lab 02: PSRule]
+    L01 --> L03[Lab 03: Checkov]
+    L01 --> L04[Lab 04: Cloud Custodian]
+    L01 --> L05[Lab 05: Infracost]
+    L02 --> L06[Lab 06: SARIF + Security Tab]
+    L03 --> L06
+    L04 --> L06
+    L05 --> L06
+    L06 --> L07[Lab 07: GitHub Actions + Cost Gates]
+
+    classDef beginner fill:#107C10,stroke:#0b5e0b,color:#fff
+    classDef intermediate fill:#0078D4,stroke:#005a9e,color:#fff
+    classDef advanced fill:#D13438,stroke:#a4262c,color:#fff
+
+    class L00,L01 beginner
+    class L02,L03,L04,L05,L06 intermediate
+    class L07 advanced
