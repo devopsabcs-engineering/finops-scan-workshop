@@ -83,8 +83,9 @@ function New-LabDirectory {
     if (-not (Test-Path $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
-    else {
-        # Clear existing PNGs
+    elseif (-not $Phase) {
+        # Only clear existing PNGs when running all phases (no -Phase filter).
+        # When running a specific phase, preserve PNGs from other phases.
         Get-ChildItem -Path $dir -Filter '*.png' -ErrorAction SilentlyContinue |
             Remove-Item -Force
     }
@@ -248,6 +249,16 @@ if ($MissingTools.Count -gt 0) {
 }
 
 Write-Host "All prerequisites found.`n" -ForegroundColor Green
+
+# ── PSRule Bicep path ─────────────────────────────────────────────────────────
+
+# PSRule.Rules.Azure needs the Bicep CLI path for file expansion
+if (-not $env:PSRULE_AZURE_BICEP_PATH) {
+    $bicepPath = Join-Path $env:USERPROFILE '.azure\bin\bicep.exe'
+    if (Test-Path $bicepPath) {
+        $env:PSRULE_AZURE_BICEP_PATH = $bicepPath
+    }
+}
 
 # ── Scanner repo path (for file captures) ────────────────────────────────────
 
@@ -420,8 +431,10 @@ if (-not $LabFilter -or $LabFilter -eq '02') {
     }
 
     if (Test-ShouldCapture '02' 'lab-02-psrule-scan-001') {
-        Invoke-FreezeScreenshot -Command "pwsh -Command ""Invoke-PSRule -InputPath 'finops-demo-app-001/infra/' -Option 'src/config/ps-rule.yaml' -OutputFormat Sarif | Select-Object -First 30""" `
-            -OutputPath (Join-Path $dir 'lab-02-psrule-scan-001.png')
+        # Use CapturedFreeze because PSRule runs natively in PowerShell (needs loaded modules and env vars).
+        # Don't use the yaml config — its output.format/path redirects to a SARIF file instead of stdout.
+        Invoke-CapturedFreezeScreenshot -Command '$opt = New-PSRuleOption -Configuration @{ ''AZURE_BICEP_FILE_EXPANSION'' = $true; ''AZURE_RESOURCE_ALLOWED_LOCATIONS'' = @(''canadacentral'',''eastus'',''eastus2'') }; Invoke-PSRule -InputPath ''finops-demo-app-001/infra/'' -Module ''PSRule.Rules.Azure'' -Option $opt -Outcome Fail -WarningAction SilentlyContinue | Out-String -Width 120' `
+            -OutputPath (Join-Path $dir 'lab-02-psrule-scan-001.png') -Lines '1,30'
     }
 
     if (Test-ShouldCapture '02' 'lab-02-psrule-sarif') {
@@ -430,8 +443,8 @@ if (-not $LabFilter -or $LabFilter -eq '02') {
     }
 
     if (Test-ShouldCapture '02' 'lab-02-psrule-scan-002') {
-        Invoke-FreezeScreenshot -Command "pwsh -Command ""Invoke-PSRule -InputPath 'finops-demo-app-002/infra/' -Option 'src/config/ps-rule.yaml' | Select-Object -First 30""" `
-            -OutputPath (Join-Path $dir 'lab-02-psrule-scan-002.png')
+        Invoke-CapturedFreezeScreenshot -Command '$opt = New-PSRuleOption -Configuration @{ ''AZURE_BICEP_FILE_EXPANSION'' = $true; ''AZURE_RESOURCE_ALLOWED_LOCATIONS'' = @(''canadacentral'',''eastus'',''eastus2'') }; Invoke-PSRule -InputPath ''finops-demo-app-002/infra/'' -Module ''PSRule.Rules.Azure'' -Option $opt -Outcome Fail -WarningAction SilentlyContinue | Out-String -Width 120' `
+            -OutputPath (Join-Path $dir 'lab-02-psrule-scan-002.png') -Lines '1,30'
     }
 
     if (Test-ShouldCapture '02' 'lab-02-psrule-fixed') {
@@ -546,17 +559,19 @@ if (-not $LabFilter -or $LabFilter -eq '05') {
     }
 
     if (Test-ShouldCapture '05' 'lab-05-infracost-breakdown') {
+        # Generate baseline JSON first (needed by diff and SARIF steps)
+        & infracost breakdown --path finops-demo-app-002/infra/main.bicep --format json --out-file reports/infracost.json 2>&1 | Out-Null
         Invoke-FreezeScreenshot -Command 'infracost breakdown --path finops-demo-app-002/infra/main.bicep --format table' `
             -OutputPath (Join-Path $dir 'lab-05-infracost-breakdown.png')
     }
 
     if (Test-ShouldCapture '05' 'lab-05-infracost-diff') {
-        Invoke-FreezeScreenshot -Command 'infracost diff --path finops-demo-app-002/infra/main.bicep --compare-to infracost-base.json' `
+        Invoke-FreezeScreenshot -Command 'infracost diff --path finops-demo-app-002/infra/main.bicep --compare-to reports/infracost.json' `
             -OutputPath (Join-Path $dir 'lab-05-infracost-diff.png')
     }
 
     if (Test-ShouldCapture '05' 'lab-05-infracost-sarif') {
-        Invoke-FreezeScreenshot -Command 'python src/converters/infracost-to-sarif.py infracost-output.json results/infracost.sarif; echo "SARIF generated successfully"' `
+        Invoke-FreezeScreenshot -Command 'python src/converters/infracost-to-sarif.py reports/infracost.json results/infracost.sarif; echo "SARIF generated successfully"' `
             -OutputPath (Join-Path $dir 'lab-05-infracost-sarif.png')
     }
 
