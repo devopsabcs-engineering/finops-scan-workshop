@@ -88,7 +88,8 @@ function New-LabDirectory {
         Get-ChildItem -Path $dir -Filter '*.png' -ErrorAction SilentlyContinue |
             Remove-Item -Force
     }
-    return $dir
+    # Return absolute path so output paths survive Push-Location CWD changes
+    return (Resolve-Path $dir).Path
 }
 
 function Invoke-FreezeScreenshot {
@@ -98,8 +99,24 @@ function Invoke-FreezeScreenshot {
     )
     Write-Host "  Capturing: $(Split-Path $OutputPath -Leaf)..." -ForegroundColor Gray
     try {
-        $args = @('--execute', $Command) + $FreezeCommon + @('-o', $OutputPath)
+        $execCommand = $Command
+        $tempScript = $null
+        # On Windows, freeze --execute runs commands directly without a shell.
+        # Shell builtins (echo), pipes, and operators fail. Wrap in pwsh via
+        # a temp script file to avoid quoting issues.
+        if ($IsWindows) {
+            # Strip existing pwsh -Command wrapper to avoid double-wrapping
+            $inner = $Command
+            if ($inner -match '^\s*pwsh\s+(-NoProfile\s+)?-Command\s+"?(.*?)"?\s*$') {
+                $inner = $Matches[2]
+            }
+            $tempScript = Join-Path ([System.IO.Path]::GetTempPath()) "freeze-$([guid]::NewGuid().ToString('N').Substring(0,8)).ps1"
+            Set-Content -Path $tempScript -Value $inner -Encoding UTF8
+            $execCommand = "pwsh -NoProfile -File $tempScript"
+        }
+        $args = @('--execute', $execCommand) + $FreezeCommon + @('-o', $OutputPath)
         & freeze @args 2>&1 | Out-Null
+        if ($tempScript) { Remove-Item $tempScript -ErrorAction SilentlyContinue }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "    FAILED: freeze exited with code $LASTEXITCODE" -ForegroundColor Red
             $script:FailureCount++
@@ -109,6 +126,43 @@ function Invoke-FreezeScreenshot {
         Write-Host "    OK" -ForegroundColor Green
     }
     catch {
+        if ($tempScript) { Remove-Item $tempScript -ErrorAction SilentlyContinue }
+        Write-Host "    FAILED: $_" -ForegroundColor Red
+        $script:FailureCount++
+    }
+}
+
+function Invoke-CapturedFreezeScreenshot {
+    # For commands whose output can't be captured by freeze --execute
+    # (e.g., checkov uses rich console that suppresses output in non-TTY mode).
+    # Runs the command in the current shell, saves output to a temp file,
+    # then uses freeze to render the file as a screenshot.
+    param(
+        [string]$Command,
+        [string]$OutputPath,
+        [string]$Lines = ''
+    )
+    Write-Host "  Capturing: $(Split-Path $OutputPath -Leaf) (pre-capture)..." -ForegroundColor Gray
+    try {
+        $tempOutput = Join-Path ([System.IO.Path]::GetTempPath()) "freeze-capture-$([guid]::NewGuid().ToString('N').Substring(0,8)).txt"
+        Invoke-Expression $Command | Out-File -FilePath $tempOutput -Encoding UTF8
+        $args = @($tempOutput) + $FreezeCommon
+        if ($Lines) {
+            $args += @('--lines', $Lines)
+        }
+        $args += @('-o', $OutputPath)
+        & freeze @args 2>&1 | Out-Null
+        Remove-Item $tempOutput -ErrorAction SilentlyContinue
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "    FAILED: freeze exited with code $LASTEXITCODE" -ForegroundColor Red
+            $script:FailureCount++
+            return
+        }
+        $script:CaptureCount++
+        Write-Host "    OK" -ForegroundColor Green
+    }
+    catch {
+        if ($tempOutput) { Remove-Item $tempOutput -ErrorAction SilentlyContinue }
         Write-Host "    FAILED: $_" -ForegroundColor Red
         $script:FailureCount++
     }
@@ -174,6 +228,12 @@ function Invoke-PlaywrightScreenshot {
 
 Write-Host "`nValidating prerequisites..." -ForegroundColor Cyan
 
+# Ensure Python user Scripts directory is on PATH (checkov, custodian installed there)
+$pythonUserScripts = Join-Path $env:LOCALAPPDATA 'Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts'
+if ((Test-Path $pythonUserScripts) -and $env:PATH -notlike "*$pythonUserScripts*") {
+    $env:PATH = "$pythonUserScripts;$env:PATH"
+}
+
 $MissingTools = @()
 foreach ($tool in @('freeze', 'node', 'npx', 'gh', 'az')) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
@@ -209,18 +269,20 @@ $PhaseMap = @{
             'lab-01-azure-portal-rg', 'lab-01-azure-portal-tags',
             'lab-04-custodian-tags', 'lab-04-custodian-orphans', 'lab-04-custodian-rightsizing',
             'lab-04-custodian-json', 'lab-04-custodian-sarif',
+            'lab-05-infracost-breakdown', 'lab-05-infracost-diff', 'lab-05-infracost-sarif',
             'lab-06-gh-api-upload', 'lab-06-security-tab', 'lab-06-alert-detail', 'lab-06-alert-triage',
             'lab-07-workflow-run', 'lab-07-matrix-jobs', 'lab-07-sarif-artifacts',
             'lab-07-cost-gate-pr', 'lab-07-deploy-teardown'
         )
     }
     '2' = @{
-        Labs = @('00', '01', '04')
+        Labs = @('00', '01', '04', '05')
         Include = @(
             'lab-00-deploy-output',
             'lab-01-azure-portal-rg', 'lab-01-azure-portal-tags',
             'lab-04-custodian-tags', 'lab-04-custodian-orphans', 'lab-04-custodian-rightsizing',
-            'lab-04-custodian-json', 'lab-04-custodian-sarif'
+            'lab-04-custodian-json', 'lab-04-custodian-sarif',
+            'lab-05-infracost-breakdown', 'lab-05-infracost-diff', 'lab-05-infracost-sarif'
         )
     }
     '3' = @{
@@ -269,7 +331,7 @@ if (-not $LabFilter -or $LabFilter -eq '00') {
     }
 
     if (Test-ShouldCapture '00' 'lab-00-checkov-version') {
-        Invoke-FreezeScreenshot -Command 'checkov --version' `
+        Invoke-CapturedFreezeScreenshot -Command 'checkov --version 2>&1 | Where-Object { $_ -notmatch "File association" }' `
             -OutputPath (Join-Path $dir 'lab-00-checkov-version.png')
     }
 
@@ -393,18 +455,18 @@ if (-not $LabFilter -or $LabFilter -eq '03') {
     }
 
     if (Test-ShouldCapture '03' 'lab-03-checkov-scan-001') {
-        Invoke-FreezeScreenshot -Command 'checkov -d finops-demo-app-001/infra --framework bicep --compact --quiet' `
-            -OutputPath (Join-Path $dir 'lab-03-checkov-scan-001.png')
+        Invoke-CapturedFreezeScreenshot -Command 'checkov -d finops-demo-app-001/infra --framework bicep --compact --quiet 2>&1 | Where-Object { $_ -notmatch "File association" }' `
+            -OutputPath (Join-Path $dir 'lab-03-checkov-scan-001.png') -Lines '1,30'
     }
 
     if (Test-ShouldCapture '03' 'lab-03-checkov-sarif') {
-        Invoke-FreezeScreenshot -Command 'checkov -d finops-demo-app-001/infra --framework bicep -o sarif --quiet 2>&1 | Select-Object -First 20' `
-            -OutputPath (Join-Path $dir 'lab-03-checkov-sarif.png')
+        Invoke-CapturedFreezeScreenshot -Command 'checkov -d finops-demo-app-001/infra --framework bicep -o sarif --quiet 2>&1 | Where-Object { $_ -notmatch "File association" }' `
+            -OutputPath (Join-Path $dir 'lab-03-checkov-sarif.png') -Lines '1,20'
     }
 
     if (Test-ShouldCapture '03' 'lab-03-checkov-scan-005') {
-        Invoke-FreezeScreenshot -Command 'checkov -d finops-demo-app-005/infra --framework bicep --compact --quiet' `
-            -OutputPath (Join-Path $dir 'lab-03-checkov-scan-005.png')
+        Invoke-CapturedFreezeScreenshot -Command 'checkov -d finops-demo-app-005/infra --framework bicep --compact --quiet 2>&1 | Where-Object { $_ -notmatch "File association" }' `
+            -OutputPath (Join-Path $dir 'lab-03-checkov-scan-005.png') -Lines '1,30'
     }
 
     if (Test-ShouldCapture '03' 'lab-03-checkov-vs-psrule') {
@@ -456,7 +518,7 @@ if (-not $LabFilter -or $LabFilter -eq '04') {
     }
 
     if (Test-ShouldCapture '04' 'lab-04-custodian-sarif') {
-        Invoke-FreezeScreenshot -Command 'python src/converters/custodian-to-sarif.py --input output --output results/custodian.sarif && echo "SARIF generated successfully"' `
+        Invoke-FreezeScreenshot -Command 'python src/converters/custodian-to-sarif.py output results/custodian.sarif; echo "SARIF generated successfully"' `
             -OutputPath (Join-Path $dir 'lab-04-custodian-sarif.png')
     }
 
@@ -489,12 +551,12 @@ if (-not $LabFilter -or $LabFilter -eq '05') {
     }
 
     if (Test-ShouldCapture '05' 'lab-05-infracost-diff') {
-        Invoke-FreezeScreenshot -Command 'infracost diff --path finops-demo-app-002/infra/main.bicep --compare-to infracost-base.json --format table' `
+        Invoke-FreezeScreenshot -Command 'infracost diff --path finops-demo-app-002/infra/main.bicep --compare-to infracost-base.json' `
             -OutputPath (Join-Path $dir 'lab-05-infracost-diff.png')
     }
 
     if (Test-ShouldCapture '05' 'lab-05-infracost-sarif') {
-        Invoke-FreezeScreenshot -Command 'python src/converters/infracost-to-sarif.py --input infracost-output.json --output results/infracost.sarif && echo "SARIF generated successfully"' `
+        Invoke-FreezeScreenshot -Command 'python src/converters/infracost-to-sarif.py infracost-output.json results/infracost.sarif; echo "SARIF generated successfully"' `
             -OutputPath (Join-Path $dir 'lab-05-infracost-sarif.png')
     }
 
@@ -507,7 +569,7 @@ if (-not $LabFilter -or $LabFilter -eq '05') {
         if (Test-Path $costGateWorkflow) {
             Invoke-FreezeFile -FilePath $costGateWorkflow `
                 -OutputPath (Join-Path $dir 'lab-05-cost-gate-workflow.png') `
-                -Lines '1-40'
+                -Lines '1,40'
         }
     }
 }
@@ -558,7 +620,7 @@ if (-not $LabFilter -or $LabFilter -eq '07') {
         if (Test-Path $scanWorkflow) {
             Invoke-FreezeFile -FilePath $scanWorkflow `
                 -OutputPath (Join-Path $dir 'lab-07-scan-workflow.png') `
-                -Lines '1-50'
+                -Lines '1,50'
         }
     }
 
@@ -567,7 +629,7 @@ if (-not $LabFilter -or $LabFilter -eq '07') {
         if (Test-Path $oidcScript) {
             Invoke-FreezeFile -FilePath $oidcScript `
                 -OutputPath (Join-Path $dir 'lab-07-oidc-setup.png') `
-                -Lines '1-40'
+                -Lines '1,40'
         }
     }
 
