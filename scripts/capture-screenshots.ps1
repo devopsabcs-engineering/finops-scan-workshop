@@ -205,7 +205,7 @@ function Invoke-PlaywrightScreenshot {
     )
     Write-Host "  Capturing: $(Split-Path $OutputPath -Leaf) (browser)..." -ForegroundColor Gray
     try {
-        $playwrightArgs = @('playwright', 'screenshot', '--viewport-size=1280,900')
+        $playwrightArgs = @('playwright', 'screenshot', '--viewport-size=1280,900', '--wait-for-timeout=10000')
         if ($StorageState -and (Test-Path $StorageState)) {
             $playwrightArgs += @('--load-storage', $StorageState)
         }
@@ -258,6 +258,16 @@ if (-not $env:PSRULE_AZURE_BICEP_PATH) {
     if (Test-Path $bicepPath) {
         $env:PSRULE_AZURE_BICEP_PATH = $bicepPath
     }
+}
+
+# ── Venv custodian path (c7n_azure requires venv due to Windows long paths) ──
+
+$VenvCustodian = Join-Path $PSScriptRoot '..'
+$VenvCustodian = Join-Path $VenvCustodian '.venv\Scripts\custodian.exe'
+if (Test-Path $VenvCustodian) {
+    $VenvCustodian = (Resolve-Path $VenvCustodian).Path
+} else {
+    $VenvCustodian = 'custodian'  # fallback to system PATH
 }
 
 # ── Scanner repo path (for file captures) ────────────────────────────────────
@@ -357,7 +367,7 @@ if (-not $LabFilter -or $LabFilter -eq '00') {
     }
 
     if (Test-ShouldCapture '00' 'lab-00-deploy-output') {
-        Invoke-FreezeScreenshot -Command 'az group list --query "[?starts_with(name,''rg-finops-demo'')]" -o table' `
+        Invoke-CapturedFreezeScreenshot -Command 'az group list -o json | ConvertFrom-Json | Where-Object { $_.name -like ''rg-finops-demo*'' } | Select-Object name, location, provisioningState | Format-Table -AutoSize | Out-String' `
             -OutputPath (Join-Path $dir 'lab-00-deploy-output.png')
     }
 
@@ -406,7 +416,9 @@ if (-not $LabFilter -or $LabFilter -eq '01') {
     }
 
     if (Test-ShouldCapture '01' 'lab-01-azure-portal-tags') {
-        Invoke-PlaywrightScreenshot -Url 'https://portal.azure.com/#browse/resourcegroups' `
+        $subId = (az account show --query id -o tsv 2>$null)
+        $tagsUrl = "https://portal.azure.com/#@/resource/subscriptions/$subId/resourceGroups/rg-finops-demo-001/tags"
+        Invoke-PlaywrightScreenshot -Url $tagsUrl `
             -OutputPath (Join-Path $dir 'lab-01-azure-portal-tags.png') `
             -StorageState $AzureAuthState
     }
@@ -511,17 +523,17 @@ if (-not $LabFilter -or $LabFilter -eq '04') {
     }
 
     if (Test-ShouldCapture '04' 'lab-04-custodian-tags') {
-        Invoke-FreezeScreenshot -Command 'custodian run -s output src/config/custodian/tagging-compliance.yml' `
+        Invoke-FreezeScreenshot -Command "& '$VenvCustodian' run -s output src/config/custodian/tagging-compliance.yml" `
             -OutputPath (Join-Path $dir 'lab-04-custodian-tags.png')
     }
 
     if (Test-ShouldCapture '04' 'lab-04-custodian-orphans') {
-        Invoke-FreezeScreenshot -Command 'custodian run -s output src/config/custodian/orphan-detection.yml' `
+        Invoke-FreezeScreenshot -Command "& '$VenvCustodian' run -s output src/config/custodian/orphan-detection.yml" `
             -OutputPath (Join-Path $dir 'lab-04-custodian-orphans.png')
     }
 
     if (Test-ShouldCapture '04' 'lab-04-custodian-rightsizing') {
-        Invoke-FreezeScreenshot -Command 'custodian run -s output src/config/custodian/right-sizing.yml' `
+        Invoke-FreezeScreenshot -Command "& '$VenvCustodian' run -s output src/config/custodian/right-sizing.yml" `
             -OutputPath (Join-Path $dir 'lab-04-custodian-rightsizing.png')
     }
 
