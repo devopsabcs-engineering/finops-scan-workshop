@@ -2,6 +2,9 @@
 
 [![Use this template](https://img.shields.io/badge/Use%20this-template-blue)](https://github.com/devopsabcs-engineering/finops-scan-workshop/generate)
 
+> [!NOTE]
+> This workshop is part of the [Agentic Accelerator Framework](https://github.com/devopsabcs-engineering/agentic-accelerator-framework).
+
 Learn to scan Azure infrastructure for cost governance violations using four open-source tools—PSRule, Checkov, Cloud Custodian, and Infracost—producing SARIF output for GitHub Security tab integration.
 
 ## Architecture

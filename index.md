@@ -5,6 +5,9 @@ title: "FinOps Cost Governance Workshop"
 
 # FinOps Cost Governance Workshop
 
+> [!NOTE]
+> This workshop is part of the [Agentic Accelerator Framework](https://github.com/devopsabcs-engineering/agentic-accelerator-framework).
+
 Learn to scan Azure infrastructure for cost governance violations using four open-source tools—PSRule, Checkov, Cloud Custodian, and Infracost—producing SARIF output for GitHub Security tab integration.
 
 ## Architecture
