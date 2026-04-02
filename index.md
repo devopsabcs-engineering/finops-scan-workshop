@@ -67,7 +67,9 @@ Work through the labs in order. Labs 02–05 can be completed in parallel after 
 - [ ] [Lab 04 — Cloud Custodian: Runtime Resource Scanning](labs/lab-04.md) _(40 min, Intermediate)_
 - [ ] [Lab 05 — Infracost: Cost Estimation and Budgeting](labs/lab-05.md) _(35 min, Intermediate)_
 - [ ] [Lab 06 — SARIF Output and GitHub Security Tab](labs/lab-06.md) _(30 min, Intermediate)_
+- [ ] [Lab 06-ADO — SARIF Output and ADO Advanced Security](labs/lab-06-ado.md) _(35 min, Intermediate)_
 - [ ] [Lab 07 — GitHub Actions Pipelines and Cost Gates](labs/lab-07.md) _(45 min, Advanced)_
+- [ ] [Lab 07-ADO — ADO YAML Pipelines and Cost Gates](labs/lab-07-ado.md) _(50 min, Advanced)_
 
 ## Lab Dependency Diagram
 
@@ -78,27 +80,35 @@ graph LR
     L01 --> L03[Lab 03: Checkov]
     L01 --> L04[Lab 04: Cloud Custodian]
     L01 --> L05[Lab 05: Infracost]
-    L02 --> L06[Lab 06: SARIF + Security Tab]
+    L02 --> L06[Lab 06: SARIF + GitHub Security Tab]
     L03 --> L06
     L04 --> L06
     L05 --> L06
+    L02 --> L06A[Lab 06-ADO: SARIF + ADO AdvSec]
+    L03 --> L06A
+    L04 --> L06A
+    L05 --> L06A
     L06 --> L07[Lab 07: GitHub Actions + Cost Gates]
+    L06A --> L07A[Lab 07-ADO: ADO Pipelines + Cost Gates]
 
     classDef beginner fill:#107C10,stroke:#0b5e0b,color:#fff
     classDef intermediate fill:#0078D4,stroke:#005a9e,color:#fff
     classDef advanced fill:#D13438,stroke:#a4262c,color:#fff
 
     class L00,L01 beginner
-    class L02,L03,L04,L05,L06 intermediate
-    class L07 advanced
+    class L02,L03,L04,L05,L06,L06A intermediate
+    class L07,L07A advanced
 ```
 
 ## Delivery Tiers
 
-| Tier | Labs | Duration | Azure Required |
-|------|------|----------|---------------|
-| Half-Day | 00, 01, 02, 03, 06 | ~3.5 hours | No |
-| Full-Day | 00–07 (all) | ~7.25 hours | Yes |
+| Tier | Platform | Labs | Duration | Azure Required |
+|------|----------|------|----------|---------------|
+| Half-Day (GitHub) | GitHub | 00, 01, 02, 03, 06 | ~3.5 hours | No |
+| Half-Day (ADO) | ADO | 00, 01, 02, 03, 06-ADO | ~3.5 hours | No |
+| Full-Day (GitHub) | GitHub | 00–07 (all GitHub) | ~7.25 hours | Yes |
+| Full-Day (ADO) | ADO | 00–05, 06-ADO, 07-ADO | ~7.75 hours | Yes |
+| Full-Day (Dual) | Both | 00–05, 06, 06-ADO, 07, 07-ADO | ~9.25 hours | Yes |
 
 ## Prerequisites
 

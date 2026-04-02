@@ -12,6 +12,9 @@ description: "Build automated scanning pipelines and PR cost gates with GitHub A
 | **Level** | Advanced |
 | **Prerequisites** | [Lab 02](lab-02.md), [Lab 03](lab-03.md), [Lab 04](lab-04.md), [Lab 05](lab-05.md), [Lab 06](lab-06.md) |
 
+> [!TIP]
+> **Using Azure DevOps?** See [Lab 07-ADO — ADO YAML Pipelines and Cost Gates](lab-07-ado.md) for the ADO variant of this lab.
+
 ## Learning Objectives
 
 By the end of this lab, you will be able to:

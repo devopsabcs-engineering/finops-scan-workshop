@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Capture all workshop screenshots for FinOps Scan Workshop labs 00-07.
+    Capture all workshop screenshots for FinOps Scan Workshop labs 00-07 plus ADO variants.
 
 .DESCRIPTION
-    Automates screenshot capture for 8 workshop labs using Charm freeze (terminal
-    output) and Playwright (browser pages). Produces 46 PNG files organized into
+    Automates screenshot capture for 10 workshop labs using Charm freeze (terminal
+    output) and Playwright (browser pages). Produces 60 PNG files organized into
     images/lab-XX/ directories. Requires the demo apps to be deployed and all
     prerequisite tools to be installed.
 
@@ -18,7 +18,7 @@
 
 .EXAMPLE
     .\scripts\capture-screenshots.ps1
-    Captures all 46 screenshots across 8 labs.
+    Captures all 60 screenshots across 10 labs.
 
 .EXAMPLE
     .\scripts\capture-screenshots.ps1 -LabFilter '02'
@@ -27,6 +27,14 @@
 .EXAMPLE
     .\scripts\capture-screenshots.ps1 -Theme 'monokai' -FontSize 16
     Captures all screenshots with custom theme and font size.
+
+.EXAMPLE
+    .\scripts\capture-screenshots.ps1 -Platform 'ado'
+    Captures only ADO-specific screenshots (labs 06-ado, 07-ado).
+
+.EXAMPLE
+    .\scripts\capture-screenshots.ps1 -Platform 'github'
+    Captures only GitHub-specific screenshots (skips ADO labs).
 #>
 
 [CmdletBinding()]
@@ -53,7 +61,20 @@ param(
     [string]$AzureAuthState = 'azure-auth.json',
 
     [Parameter()]
-    [ValidateSet('', '1', '2', '3')]
+    [ValidateSet('', 'github', 'ado')]
+    [string]$Platform = '',
+
+    [Parameter()]
+    [string]$AdoOrg = 'MngEnvMCAP675646',
+
+    [Parameter()]
+    [string]$AdoProject = 'FinOps',
+
+    [Parameter()]
+    [string]$AdoAuthState = 'ado-auth.json',
+
+    [Parameter()]
+    [ValidateSet('', '1', '2', '3', '4')]
     [string]$Phase = ''
 )
 
@@ -284,7 +305,7 @@ if (Test-Path $ScannerRepo) {
 
 $PhaseMap = @{
     '1' = @{
-        Labs = @('00', '01', '02', '03', '04', '05', '06', '07')
+        Labs = @('00', '01', '02', '03', '04', '05', '06', '07', '06-ado', '07-ado')
         Exclude = @(
             'lab-00-deploy-output',
             'lab-01-azure-portal-rg', 'lab-01-azure-portal-tags',
@@ -293,7 +314,10 @@ $PhaseMap = @{
             'lab-05-infracost-breakdown', 'lab-05-infracost-diff', 'lab-05-infracost-sarif',
             'lab-06-gh-api-upload', 'lab-06-security-tab', 'lab-06-alert-detail', 'lab-06-alert-triage',
             'lab-07-workflow-run', 'lab-07-matrix-jobs', 'lab-07-sarif-artifacts',
-            'lab-07-cost-gate-pr', 'lab-07-deploy-teardown'
+            'lab-07-cost-gate-pr', 'lab-07-deploy-teardown',
+            'lab-06-ado-pipeline-run', 'lab-06-ado-advsec-overview', 'lab-06-ado-alert-detail',
+            'lab-07-ado-variable-groups', 'lab-07-ado-pipeline-run', 'lab-07-ado-matrix-jobs',
+            'lab-07-ado-cost-gate-pr', 'lab-07-ado-environment', 'lab-07-ado-deploy-teardown'
         )
     }
     '2' = @{
@@ -314,10 +338,27 @@ $PhaseMap = @{
             'lab-07-cost-gate-pr', 'lab-07-deploy-teardown'
         )
     }
+    '4' = @{
+        Labs = @('06-ado', '07-ado')
+        Include = @(
+            'lab-06-ado-pipeline-run',
+            'lab-06-ado-advsec-overview',
+            'lab-06-ado-alert-detail',
+            'lab-07-ado-variable-groups',
+            'lab-07-ado-pipeline-run',
+            'lab-07-ado-matrix-jobs',
+            'lab-07-ado-cost-gate-pr',
+            'lab-07-ado-environment',
+            'lab-07-ado-deploy-teardown'
+        )
+    }
 }
 
 function Test-ShouldCapture {
     param([string]$Lab, [string]$ScreenshotName)
+    # Platform filter
+    if ($Platform -eq 'github' -and $Lab -match '-ado') { return $false }
+    if ($Platform -eq 'ado' -and $Lab -notmatch '-ado' -and $Lab -in @('06', '07')) { return $false }
     if (-not $Phase) { return $true }
     $mapping = $PhaseMap[$Phase]
     if ($Lab -notin $mapping.Labs) { return $false }
@@ -373,7 +414,8 @@ if (-not $LabFilter -or $LabFilter -eq '00') {
 
     if (Test-ShouldCapture '00' 'lab-00-fork-repo') {
         Invoke-PlaywrightScreenshot -Url "https://github.com/$Org/finops-scan-demo-app/fork" `
-            -OutputPath (Join-Path $dir 'lab-00-fork-repo.png')
+            -OutputPath (Join-Path $dir 'lab-00-fork-repo.png') `
+            -StorageState $GitHubAuthState
     }
 }
 
@@ -613,7 +655,7 @@ if (-not $LabFilter -or $LabFilter -eq '06') {
     }
 
     if (Test-ShouldCapture '06' 'lab-06-gh-api-upload') {
-        Invoke-FreezeScreenshot -Command "gh api -X POST repos/$Org/finops-demo-app-001/code-scanning/sarifs -f 'commit_sha=HEAD' -f 'ref=refs/heads/main' -f 'sarif=@results/psrule/001.sarif.gz' --jq '.id'" `
+        Invoke-FreezeScreenshot -Command "`$sha = (git -C '$ScannerRepo' rev-parse HEAD); gh api -X POST repos/$Org/finops-demo-app-001/code-scanning/sarifs -f commit_sha=`$sha -f ref=refs/heads/main -f 'sarif=@results/psrule/001.sarif.gz' --jq '.id'" `
             -OutputPath (Join-Path $dir 'lab-06-gh-api-upload.png')
     }
 
@@ -630,7 +672,7 @@ if (-not $LabFilter -or $LabFilter -eq '06') {
     }
 
     if (Test-ShouldCapture '06' 'lab-06-alert-triage') {
-        Invoke-PlaywrightScreenshot -Url "https://github.com/$Org/finops-demo-app-001/security/code-scanning?query=is:open" `
+        Invoke-PlaywrightScreenshot -Url "https://github.com/$Org/finops-demo-app-001/security/code-scanning?query=is:dismissed" `
             -OutputPath (Join-Path $dir 'lab-06-alert-triage.png') `
             -StorageState $GitHubAuthState
     }
@@ -673,13 +715,25 @@ if (-not $LabFilter -or $LabFilter -eq '07') {
     }
 
     if (Test-ShouldCapture '07' 'lab-07-sarif-artifacts') {
-        Invoke-PlaywrightScreenshot -Url "https://github.com/$Org/finops-scan-demo-app/actions/workflows/finops-scan.yml" `
+        $latestRunId = (gh run list --workflow finops-scan.yml --repo "$Org/finops-scan-demo-app" --json databaseId --jq '.[0].databaseId' 2>$null)
+        if ($latestRunId) {
+            $artifactsUrl = "https://github.com/$Org/finops-scan-demo-app/actions/runs/$latestRunId"
+        } else {
+            $artifactsUrl = "https://github.com/$Org/finops-scan-demo-app/actions/workflows/finops-scan.yml"
+        }
+        Invoke-PlaywrightScreenshot -Url $artifactsUrl `
             -OutputPath (Join-Path $dir 'lab-07-sarif-artifacts.png') `
             -StorageState $GitHubAuthState
     }
 
     if (Test-ShouldCapture '07' 'lab-07-cost-gate-pr') {
-        Invoke-PlaywrightScreenshot -Url "https://github.com/$Org/finops-scan-demo-app/pulls" `
+        $prNumber = (gh pr list --repo "$Org/finops-scan-demo-app" --state all --json number --jq '.[0].number' 2>$null)
+        if ($prNumber) {
+            $costGateUrl = "https://github.com/$Org/finops-scan-demo-app/pull/$prNumber"
+        } else {
+            $costGateUrl = "https://github.com/$Org/finops-scan-demo-app/pulls?q=is:pr"
+        }
+        Invoke-PlaywrightScreenshot -Url $costGateUrl `
             -OutputPath (Join-Path $dir 'lab-07-cost-gate-pr.png') `
             -StorageState $GitHubAuthState
     }
@@ -688,6 +742,114 @@ if (-not $LabFilter -or $LabFilter -eq '07') {
         Invoke-PlaywrightScreenshot -Url "https://github.com/$Org/finops-scan-demo-app/actions/workflows/deploy-all.yml" `
             -OutputPath (Join-Path $dir 'lab-07-deploy-teardown.png') `
             -StorageState $GitHubAuthState
+    }
+}
+
+# ── Lab 06-ADO: ADO Advanced Security ────────────────────────────────────────
+
+if (-not $LabFilter -or $LabFilter -eq '06-ado') {
+    Write-Host "Lab 06-ADO: ADO Advanced Security" -ForegroundColor Cyan
+    $dir = New-LabDirectory '06-ado'
+
+    if (Test-ShouldCapture '06-ado' 'lab-06-ado-sarif-review') {
+        Invoke-FreezeScreenshot -Command 'pwsh -NoProfile -Command "Get-Content reports/psrule-001.sarif -ErrorAction SilentlyContinue | Select-Object -First 30; if (-not `$?) { Write-Host ''SARIF v2.1.0 — runs[].tool.driver / runs[].results[]'' }"' `
+            -OutputPath (Join-Path $dir 'lab-06-ado-sarif-review.png')
+    }
+
+    if (Test-ShouldCapture '06-ado' 'lab-06-ado-pipeline-yaml') {
+        $publishSarif = Join-Path $ScannerRepo '.azuredevops\pipelines\publish-sarif.yml'
+        if (Test-Path $publishSarif) {
+            Invoke-FreezeFile -FilePath $publishSarif `
+                -OutputPath (Join-Path $dir 'lab-06-ado-pipeline-yaml.png')
+        }
+        else {
+            Invoke-FreezeScreenshot -Command 'echo "# publish-sarif.yml`ntrigger: none`npool:`n  vmImage: ubuntu-latest`nsteps:`n  - task: AdvancedSecurity-Publish@1`n    inputs:`n      SarifsInputDirectory: $(Build.SourcesDirectory)/results"' `
+                -OutputPath (Join-Path $dir 'lab-06-ado-pipeline-yaml.png')
+        }
+    }
+
+    if (Test-ShouldCapture '06-ado' 'lab-06-ado-pipeline-run') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_build" `
+            -OutputPath (Join-Path $dir 'lab-06-ado-pipeline-run.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '06-ado' 'lab-06-ado-advsec-overview') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_git/finops-demo-app-001/advancedsecurity" `
+            -OutputPath (Join-Path $dir 'lab-06-ado-advsec-overview.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '06-ado' 'lab-06-ado-alert-detail') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_git/finops-demo-app-001/advancedsecurity/alerts" `
+            -OutputPath (Join-Path $dir 'lab-06-ado-alert-detail.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '06-ado' 'lab-06-ado-compare-github') {
+        Invoke-FreezeScreenshot -Command 'echo "GitHub Security Tab vs ADO Advanced Security`n──────────────────────────────────────────────`nFeature          | GitHub              | ADO`nSARIF Upload     | REST API / Actions  | AdvSec-Publish@1`nAlert Viewer     | Security Tab        | AdvSec Overview`nAlert Triage     | Dismiss dropdown    | State management`nAuto-Fix         | Dependabot          | N/A`nPR Integration   | Check runs          | Branch policies"' `
+            -OutputPath (Join-Path $dir 'lab-06-ado-compare-github.png')
+    }
+}
+
+# ── Lab 07-ADO: ADO YAML Pipelines ──────────────────────────────────────────
+
+if (-not $LabFilter -or $LabFilter -eq '07-ado') {
+    Write-Host "Lab 07-ADO: ADO YAML Pipelines" -ForegroundColor Cyan
+    $dir = New-LabDirectory '07-ado'
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-scan-pipeline') {
+        $scanPipeline = Join-Path $ScannerRepo '.azuredevops\pipelines\finops-scan.yml'
+        if (Test-Path $scanPipeline) {
+            Invoke-FreezeFile -FilePath $scanPipeline `
+                -OutputPath (Join-Path $dir 'lab-07-ado-scan-pipeline.png') `
+                -Lines '1,50'
+        }
+        else {
+            Invoke-FreezeScreenshot -Command 'echo "# finops-scan.yml — ADO multi-stage pipeline`ntrigger:`n  branches: { include: [main] }`npool:`n  vmImage: ubuntu-latest`nstages:`n  - stage: Scan`n    jobs:`n      - job: PSRule`n        strategy: { matrix: { app-001: {app: 001}, app-002: {app: 002} } }"' `
+                -OutputPath (Join-Path $dir 'lab-07-ado-scan-pipeline.png')
+        }
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-wif-setup') {
+        Invoke-FreezeScreenshot -Command 'echo "WIF Service Connections in MngEnvMCAP675646/FinOps`n─────────────────────────────────────────────────────`nName                      | Type      | Status`nfinops-scanner-ado        | Federated | Active`nfinops-demo-app-001       | Federated | Active`nfinops-demo-app-002       | Federated | Active`nfinops-demo-app-003       | Federated | Active`nfinops-demo-app-004       | Federated | Active`nfinops-demo-app-005       | Federated | Active"' `
+            -OutputPath (Join-Path $dir 'lab-07-ado-wif-setup.png')
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-variable-groups') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_library?itemType=VariableGroups" `
+            -OutputPath (Join-Path $dir 'lab-07-ado-variable-groups.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-pipeline-run') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_build" `
+            -OutputPath (Join-Path $dir 'lab-07-ado-pipeline-run.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-matrix-jobs') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_build/results?view=results" `
+            -OutputPath (Join-Path $dir 'lab-07-ado-matrix-jobs.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-cost-gate-pr') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_git/finops-demo-app-001/pullrequests" `
+            -OutputPath (Join-Path $dir 'lab-07-ado-cost-gate-pr.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-environment') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_environments" `
+            -OutputPath (Join-Path $dir 'lab-07-ado-environment.png') `
+            -StorageState $AdoAuthState
+    }
+
+    if (Test-ShouldCapture '07-ado' 'lab-07-ado-deploy-teardown') {
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_build?definitionScope=%5C" `
+            -OutputPath (Join-Path $dir 'lab-07-ado-deploy-teardown.png') `
+            -StorageState $AdoAuthState
     }
 }
 

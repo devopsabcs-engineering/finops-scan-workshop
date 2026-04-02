@@ -12,6 +12,9 @@ description: "Understand SARIF format and upload scan results to the GitHub Secu
 | **Level** | Intermediate |
 | **Prerequisites** | [Lab 02](lab-02.md), [Lab 03](lab-03.md), [Lab 04](lab-04.md), or [Lab 05](lab-05.md) (at least one) |
 
+> [!TIP]
+> **Using Azure DevOps?** See [Lab 06-ADO — SARIF Output and ADO Advanced Security](lab-06-ado.md) for the ADO variant of this lab.
+
 ## Learning Objectives
 
 By the end of this lab, you will be able to:
