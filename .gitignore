@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Auth state files (Playwright session cookies)
+ado-auth.json
+
 .copilot-tracking
 
 # User-specific files
