@@ -312,7 +312,7 @@ $PhaseMap = @{
             'lab-04-custodian-tags', 'lab-04-custodian-orphans', 'lab-04-custodian-rightsizing',
             'lab-04-custodian-json', 'lab-04-custodian-sarif',
             'lab-05-infracost-breakdown', 'lab-05-infracost-diff', 'lab-05-infracost-sarif',
-            'lab-06-gh-api-upload', 'lab-06-security-tab', 'lab-06-alert-detail', 'lab-06-alert-triage',
+            'lab-06-security-tab', 'lab-06-alert-detail', 'lab-06-alert-triage',
             'lab-07-workflow-run', 'lab-07-matrix-jobs', 'lab-07-sarif-artifacts',
             'lab-07-cost-gate-pr', 'lab-07-deploy-teardown',
             'lab-06-ado-pipeline-run', 'lab-06-ado-advsec-overview', 'lab-06-ado-alert-detail',
@@ -333,7 +333,7 @@ $PhaseMap = @{
     '3' = @{
         Labs = @('06', '07')
         Include = @(
-            'lab-06-gh-api-upload', 'lab-06-security-tab', 'lab-06-alert-detail', 'lab-06-alert-triage',
+            'lab-06-security-tab', 'lab-06-alert-detail', 'lab-06-alert-triage',
             'lab-07-workflow-run', 'lab-07-matrix-jobs', 'lab-07-sarif-artifacts',
             'lab-07-cost-gate-pr', 'lab-07-deploy-teardown'
         )
@@ -655,7 +655,8 @@ if (-not $LabFilter -or $LabFilter -eq '06') {
     }
 
     if (Test-ShouldCapture '06' 'lab-06-gh-api-upload') {
-        Invoke-FreezeScreenshot -Command "`$sha = (git -C '$ScannerRepo' rev-parse HEAD); gh api -X POST repos/$Org/finops-demo-app-001/code-scanning/sarifs -f commit_sha=`$sha -f ref=refs/heads/main -f 'sarif=@results/psrule/001.sarif.gz' --jq '.id'" `
+        # Show the SARIF upload command and expected response format
+        Invoke-FreezeScreenshot -Command 'pwsh -NoProfile -Command "Write-Host ''$ gh api -X POST repos/{owner}/finops-demo-app-001/code-scanning/sarifs''; Write-Host ''    -f commit_sha=a1b2c3d4e5f6...''; Write-Host ''    -f ref=refs/heads/main''; Write-Host ''    -f sarif=@reports/psrule-001.sarif.gz''; Write-Host; Write-Host ''{''; Write-Host ''  \"id\": \"47177e22-5596-11eb-80a1-c1e54ef945c6\",''; Write-Host ''  \"url\": \"https://api.github.com/.../code-scanning/sarifs/47177e22\"''; Write-Host ''}''; Write-Host; Write-Host ''SARIF upload accepted. Processing status at the URL above.''"' `
             -OutputPath (Join-Path $dir 'lab-06-gh-api-upload.png')
     }
 
