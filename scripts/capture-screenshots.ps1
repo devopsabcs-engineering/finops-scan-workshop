@@ -753,7 +753,8 @@ if (-not $LabFilter -or $LabFilter -eq '06-ado') {
     $dir = New-LabDirectory '06-ado'
 
     if (Test-ShouldCapture '06-ado' 'lab-06-ado-sarif-review') {
-        Invoke-FreezeScreenshot -Command 'pwsh -NoProfile -Command "Get-Content reports/psrule-001.sarif -ErrorAction SilentlyContinue | Select-Object -First 30; if (-not `$?) { Write-Host ''SARIF v2.1.0 — runs[].tool.driver / runs[].results[]'' }"' `
+        # Show SARIF structure overview
+        Invoke-FreezeScreenshot -Command 'pwsh -NoProfile -Command "Write-Host ''SARIF v2.1.0 Structure (used by both GitHub and ADO Advanced Security)''; Write-Host ''━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━''; Write-Host ''''; Write-Host ''  version: 2.1.0''; Write-Host ''  runs[]:''; Write-Host ''    tool.driver.name        → Scanner identity (PSRule, Checkov, ...)''; Write-Host ''    tool.driver.rules[]     → Rule definitions with severity''; Write-Host ''    results[]:''; Write-Host ''      ruleId               → Matches a rules[] entry''; Write-Host ''      level                → error | warning | note''; Write-Host ''      message.text         → Human-readable finding''; Write-Host ''      locations[]          → File path + line number''; Write-Host ''''; Write-Host ''  ADO Advanced Security reads these fields to populate the AdvSec Overview.''"' `
             -OutputPath (Join-Path $dir 'lab-06-ado-sarif-review.png')
     }
 
@@ -764,7 +765,8 @@ if (-not $LabFilter -or $LabFilter -eq '06-ado') {
                 -OutputPath (Join-Path $dir 'lab-06-ado-pipeline-yaml.png')
         }
         else {
-            Invoke-FreezeScreenshot -Command 'echo "# publish-sarif.yml`ntrigger: none`npool:`n  vmImage: ubuntu-latest`nsteps:`n  - task: AdvancedSecurity-Publish@1`n    inputs:`n      SarifsInputDirectory: $(Build.SourcesDirectory)/results"' `
+            # Escape $ to prevent PowerShell from expanding ADO pipeline variables
+            Invoke-FreezeScreenshot -Command 'pwsh -NoProfile -Command "Write-Host ''# publish-sarif.yml''; Write-Host ''trigger: none''; Write-Host ''''; Write-Host ''pool:''; Write-Host ''  vmImage: ubuntu-latest''; Write-Host ''''; Write-Host ''steps:''; Write-Host ''  - task: AdvancedSecurity-Publish@1''; Write-Host ''    displayName: Publish SARIF to ADO Advanced Security''; Write-Host ''    inputs:''; Write-Host ''      SarifsInputDirectory: `$(Build.SourcesDirectory)/results''"' `
                 -OutputPath (Join-Path $dir 'lab-06-ado-pipeline-yaml.png')
         }
     }
@@ -776,13 +778,15 @@ if (-not $LabFilter -or $LabFilter -eq '06-ado') {
     }
 
     if (Test-ShouldCapture '06-ado' 'lab-06-ado-advsec-overview') {
-        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_git/finops-demo-app-001/advancedsecurity" `
+        # ADO Advanced Security settings page showing AdvSec enabled with View alerts link
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_settings/repositories?repo=finops-demo-app-001" `
             -OutputPath (Join-Path $dir 'lab-06-ado-advsec-overview.png') `
             -StorageState $AdoAuthState
     }
 
     if (Test-ShouldCapture '06-ado' 'lab-06-ado-alert-detail') {
-        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_git/finops-demo-app-001/advancedsecurity/alerts" `
+        # Show a specific publish-sarif pipeline run that uploaded SARIF results
+        Invoke-PlaywrightScreenshot -Url "https://dev.azure.com/$AdoOrg/$AdoProject/_build?definitionId=170" `
             -OutputPath (Join-Path $dir 'lab-06-ado-alert-detail.png') `
             -StorageState $AdoAuthState
     }
