@@ -5,6 +5,10 @@ nav_order: 0
 permalink: /
 ---
 
+<p align="center">
+  <img src="assets/branding/logo-128.png" alt="Agentic Accelerator Framework" width="100">
+</p>
+
 # FinOps Cost Governance Workshop
 
 Welcome to the **FinOps Cost Governance Workshop** — a hands-on, progressive workshop that teaches you how to scan Azure infrastructure for cost governance violations using four open-source tools: PSRule, Checkov, Cloud Custodian, and Infracost.
