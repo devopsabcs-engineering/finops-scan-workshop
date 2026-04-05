@@ -1,17 +1,25 @@
 title: "FinOps Cost Governance Workshop"
 description: "Learn to scan Azure resources for cost governance violations using PSRule, Checkov, Cloud Custodian, and Infracost."
-theme: jekyll-theme-minimal
-plugins:
-  - jekyll-relative-links
-relative_links:
-  enabled: true
-  collections: true
+remote_theme: just-the-docs/just-the-docs
+baseurl: "/finops-scan-workshop"
+url: "https://devopsabcs-engineering.github.io"
+
 exclude:
-  - Gemfile
-  - Gemfile.lock
   - scripts/
+  - delivery/
+  - .devcontainer/
+  - node_modules/
+  - package.json
+  - package-lock.json
+  - Gemfile.lock
   - src/
   - .copilot-tracking/
-  - .github/agents/
-  - .github/prompts/
-  - .github/skills/
+
+defaults:
+  - scope:
+      path: "images"
+    values:
+      nav_exclude: true
+
+nav_order_base: 0
+heading_anchors: true
