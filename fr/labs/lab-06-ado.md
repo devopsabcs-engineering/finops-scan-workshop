@@ -1,4 +1,5 @@
 ---
+nav_exclude: true
 permalink: /fr/labs/lab-06-ado
 title: "Lab 06-ADO - Sortie SARIF et ADO Advanced Security"
 description: "Téléverser les résultats d'analyse SARIF vers Azure DevOps Advanced Security et trier les résultats."

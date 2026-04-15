@@ -1,4 +1,5 @@
 ---
+nav_exclude: true
 permalink: /fr/labs/lab-05
 title: "Lab 05 - Infracost : Estimation des coûts et budgétisation"
 description: "Estimer les coûts d'infrastructure à partir de templates Bicep et mettre en place des contrôles de coûts dans les PR."

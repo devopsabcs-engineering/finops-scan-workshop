@@ -1,4 +1,5 @@
 ---
+nav_exclude: true
 permalink: /fr/labs/lab-03
 title: "Lab 03 - Checkov : Analyse statique de politiques"
 description: "Exécuter Checkov sur des templates Bicep pour détecter les violations de sécurité et de gouvernance des coûts."

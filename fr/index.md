@@ -1,4 +1,5 @@
 ---
+nav_exclude: true
 layout: default
 title: Accueil
 nav_order: 0

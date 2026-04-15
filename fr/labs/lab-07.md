@@ -1,4 +1,5 @@
 ---
+nav_exclude: true
 permalink: /fr/labs/lab-07
 title: "Lab 07 - Pipelines GitHub Actions et contrôles de coûts"
 description: "Construire des pipelines d'analyse automatisés et des contrôles de coûts dans les PR avec GitHub Actions."

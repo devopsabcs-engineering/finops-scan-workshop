@@ -1,4 +1,5 @@
 ---
+nav_exclude: true
 permalink: /fr/labs/lab-06
 title: "Lab 06 - Sortie SARIF et onglet Sécurité GitHub"
 description: "Comprendre le format SARIF et téléverser les résultats d'analyse vers l'onglet Sécurité GitHub."
