@@ -7,13 +7,13 @@ nav_order: 0
 permalink: /fr/
 ---
 
+> 🇬🇧 **[English version](../)**
+
 <p align="center">
   <img src="../assets/branding/logo-128.png" alt="Agentic Accelerator Framework" width="100">
 </p>
 
 # Atelier de gouvernance des coûts FinOps
-
-> 🇬🇧 **[English version](../)**
 
 Bienvenue dans l'**Atelier de gouvernance des coûts FinOps** — un atelier pratique et progressif qui vous apprend à analyser l'infrastructure Azure pour détecter les violations de gouvernance des coûts à l'aide de quatre outils open source : PSRule, Checkov, Cloud Custodian et Infracost.
 
