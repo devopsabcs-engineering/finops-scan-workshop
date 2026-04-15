@@ -1,5 +1,6 @@
 ---
 nav_exclude: true
+lang: fr
 permalink: /fr/labs/lab-07-ado
 title: "Lab 07-ADO - Pipelines YAML ADO et contrôles de coûts"
 description: "Construire des pipelines d'analyse automatisés, des contrôles de coûts et des workflows de déploiement avec les pipelines YAML Azure DevOps."

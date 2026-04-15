@@ -1,5 +1,6 @@
 ---
 nav_exclude: true
+lang: fr
 permalink: /fr/labs/lab-02
 title: "Lab 02 - PSRule : Analyse d'infrastructure en tant que code"
 description: "Analyser les templates Bicep pour détecter les violations de gouvernance des coûts à l'aide de PSRule for Azure."

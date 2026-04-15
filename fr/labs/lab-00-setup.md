@@ -1,5 +1,6 @@
 ---
 nav_exclude: true
+lang: fr
 permalink: /fr/labs/lab-00-setup
 title: "Lab 00 - Prérequis et configuration de l'environnement"
 description: "Configurez votre environnement avec tous les outils requis pour l'analyse de gouvernance des coûts FinOps."

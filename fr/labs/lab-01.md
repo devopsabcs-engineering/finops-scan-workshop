@@ -1,5 +1,6 @@
 ---
 nav_exclude: true
+lang: fr
 permalink: /fr/labs/lab-01
 title: "Lab 01 - Explorer les applications de démonstration et les violations FinOps"
 description: "Comprendre les 5 applications de démonstration et leurs violations intentionnelles de gouvernance des coûts."

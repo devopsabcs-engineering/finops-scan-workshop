@@ -1,5 +1,6 @@
 ---
 nav_exclude: true
+lang: fr
 permalink: /fr/labs/lab-04
 title: "Lab 04 - Cloud Custodian : Analyse des ressources en temps réel"
 description: "Analyser les ressources Azure actives pour détecter les violations de gouvernance des coûts avec Cloud Custodian."
