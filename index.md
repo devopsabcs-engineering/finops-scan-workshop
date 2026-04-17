@@ -182,6 +182,7 @@ graph LR
 | [Agentic Accelerator Workshop](https://devopsabcs-engineering.github.io/agentic-accelerator-workshop/) | Hands-on workshop for AI-powered Accelerator agents |
 | [Accessibility Scan Workshop](https://devopsabcs-engineering.github.io/accessibility-scan-workshop/) | WCAG 2.2 accessibility scanning workshop |
 | [Code Quality Scan Workshop](https://devopsabcs-engineering.github.io/code-quality-scan-workshop/) | Code quality scanning workshop |
+| [APM Security Scan Workshop](https://devopsabcs-engineering.github.io/apm-security-scan-workshop/) | Agent configuration file security scanning workshop |
 
 ## License
 
